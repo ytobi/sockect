@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <zconf.h>
+#include <cstring>
 #include "server.h"
 
 Server::Server(std::size_t portNumber)
@@ -34,19 +35,22 @@ bool Server::init()
     // creating sockect
     Server::sockedFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
 
-    if( Server::sockedFd < 0 )
+    if( sockedFd < 0 )
     {
         alert("Creating socket" , false );
+
+        exit( 0 );
     }
 
     alert("Creating socket" , true );
 
     // binding sockect
-    bool successfullBinfidng = bind( sockedFd, ( const sockaddr *)&serverAddress, sizeof( sockaddr ) );
+    bool successfullBinding = bind( sockedFd, ( struct sockaddr * )&serverAddress, sizeof( serverAddress ) );
 
-    if( successfullBinfidng )
+    if( successfullBinding < 0 )
     {
         alert( "binding", false );
+        exit( 0 );
     }
 
     alert( "binding", true );
@@ -59,23 +63,29 @@ void Server::communicate()
     std::cout << "Waiting for client... " << std::endl;
 
 
-    listen(sockedFd, Server::numberOfSocket);
+    listen(sockedFd, numberOfSocket);
 
-    int clientConnection = accept(Server::sockedFd, (sockaddr *) &clientAddress, (unsigned *) sizeof(&clientAddress) );
+    int clientConnection = 0;
 
-    std::string msg = "";
+    if( (clientConnection = accept( sockedFd, ( struct sockaddr *)&clientAddress, (unsigned *) sizeof(clientAddress)) < 0 ))
+    {
+        alert( "Accepting connections ", false );
+    }
+
+    char * msg = nullptr;
     do
     {
         std::cout << "Accepted connections from " + htonl(clientAddress.sin_addr.s_addr) << std::endl;
         if( std::cin.good() )
         {
             std::cin >> msg;
-            send( clientConnection, ( const void *)&msg, msg.length(), 0 );
+
+            send( clientConnection, msg, strlen( msg ), 0 );
         }
 
-        if( recv( clientConnection, ((void *)&msg), msg.length(), 0) )
+        if( recv( clientConnection, msg, strlen( msg ), 0) > 0 )
         {
-            std::cout << "Client " + msg << std::endl;
+            std::cout << "Client >>    " + *msg << std::endl;
         }
 
     }while ( clientConnection > 0 );
@@ -98,12 +108,12 @@ bool Server::alert( std::string message, bool type )
     return true;
 }
 
-/*
+
 int main()
 {
     Server server( 4001 );
     server.init();
 }
-*/
+
 
 

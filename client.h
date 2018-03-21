@@ -19,13 +19,13 @@ class Client
 private:
     std::size_t portNumber;
     int clientFd;
-    std::string serverName;
+    char * serverName;
     struct sockaddr_in serverAddress;
-    //struct hostent *server = new;
+    struct hostent *server;
 
 
 public:
-    Client( std::size_t portNumber, std::string severName );
+    Client( std::size_t portNumber, char * severName );
     void init();
     void communicate( int connectionFd );
 };
