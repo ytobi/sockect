@@ -26,6 +26,7 @@ private:
 
 public:
     Client( std::size_t portNumber, char * severName );
+    ~Client();
     void init();
     void communicate( int connectionFd );
 };

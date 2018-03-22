@@ -13,16 +13,15 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <memory>
+#include <arpa/inet.h>
 
 class Server
 {
 private:
     std::size_t portNumber;
     std::size_t numberOfSocket;
-    std::size_t sockedFd;
-    std::size_t bufferSize = 1024;
-    std::string message;
-    std::string buffer[1024];
+    std::size_t socketFd;
+    std::size_t activeConnection;
 
     struct sockaddr_in serverAddress;
     struct sockaddr_in clientAddress;
@@ -31,14 +30,14 @@ private:
 public:
 
     Server( std::size_t portNumber );   // constructor
+
     ~Server();
+
     bool init();                        // initialise server socket
 
     void communicate();                 // manages communication
 
-
     std::string recieve();              // captures a messages
-
     // raise success true or error false alerts
     bool alert( std::string message, bool type );
 };

@@ -3,6 +3,7 @@
 //
 
 #include "client.h"
+#include <arpa/inet.h>
 
 
 Client::Client(std::size_t portNumber, char * severName)
@@ -11,26 +12,43 @@ Client::Client(std::size_t portNumber, char * severName)
     this->serverName = severName;
 }
 
+Client::~Client()
+{
+    close( clientFd );
+}
 void Client::init()
 {
 
-    hostent *server;
-
+	clientFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+   
+	bzero( &serverAddress, sizeof( serverAddress ) );
+	bzero( &server, sizeof( server ) );
+	bzero( &serverAddress.sin_addr.s_addr, sizeof( serverAddress ) );
+	
     server = gethostbyname( this->serverName );
 
-    int t = server->h_length;
-    this->serverAddress.sin_port = htons( this->portNumber );
-    this->serverAddress.sin_family = AF_INET;
-
-
-    memcpy( ( void *)&serverAddress.sin_addr, server->h_addr_list, server->h_length );
-
-//    bcopy(( &server->h_addr_list),
-//          (&serverAddress.sin_addr), server->h_length );
-
-    if( ( Client::clientFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 )
+    if( server == NULL )
     {
-        std::cout <<  "Error creating socket" << std::endl;
+        std::cout << "unrecognised host" << std::endl;
+        exit( 0 );
+    }
+
+    bcopy((char *)server->h_addr, (char *)&serverAddress.sin_addr.s_addr, server->h_length);
+
+    this->serverAddress.sin_port = htons(this->portNumber);
+    this->serverAddress.sin_family = AF_INET;
+   // serverAddress.sin_addr.s_addr = inet_addr( this->serverName );
+
+
+  //  if( inet_aton( serverName, &serverAddress.sin_addr ) == 0)
+  //  {
+  //      std::cout << "Invalid server address" << std::endl;
+  //      exit( 0 );
+  //  }
+
+    if( ( clientFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 )
+    {
+        std::cout << "Error creating socket" << std::endl;
         exit( 0 );
     }
 
@@ -38,10 +56,15 @@ void Client::init()
 
     std::cout <<  "Trying to connecting..." << std::endl;
 
+    socklen_t severAddressLength = sizeof( serverAddress );
+    int cnnt = connect( clientFd, ( struct sockaddr *)&serverAddress, severAddressLength );
 
-    if( connect( clientFd, (struct sockaddr *)(&serverAddress), sizeof( serverAddress) ) == 0 )
+    if( cnnt != 0 )
     {
-        std::cout << "Error creating connection" << std::endl;
+        std::cout.flush();
+        std::cout << "Error creating connection " + cnnt << std::endl;
+        close( clientFd );
+        exit( 0 );
     }
     std::cout << "Got connection from a server " << server->h_name << std::endl;
     communicate( clientFd );
@@ -49,21 +72,22 @@ void Client::init()
 }
 void Client::communicate( int clientFd )
 {
-    char *msg = nullptr;
+    char * msg;
 
     std::cout << "waiting for connection" << std::endl;
     do
     {
+        recv( clientFd, &msg, strlen( msg ), 0);
+        std::cout << "server " + *msg << std::endl;
 
         if( std::cin.good() )
         {
-            std::cin.getline( msg, 1024 );
-            send( clientFd, msg, 1024, 0 );
+            std::cin >> msg;
+            send( clientFd, &msg, strlen( msg ), 0 );
         }
-        if( recv( clientFd, msg, 1024, 0) )
-        {
-            std::cout << "server >> " + *msg << std::endl;
-        }
+       recv( clientFd, &msg, strlen( msg ), 0);
+
+        std::cout << "server >> " + *msg << std::endl;
 
     }while( clientFd > 0 );
 
@@ -74,16 +98,13 @@ void Client::communicate( int clientFd )
 
 int main( int argc, char* argv[] )
 {
-
-
     if( argc < 3 )
     {
-        std::cout << "Ussage << Server Address >> << Port >> " << std::endl;
+        std::cout << "Usage << Server Address >> << Port >> " << std::endl;
         exit( 0 );
     }
 
-
-    Client client( *argv[2], argv[1] );
+    Client client( atoi(argv[2]), argv[1] );
 
     client.init();
 }

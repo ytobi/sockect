@@ -12,6 +12,7 @@
 #include <zconf.h>
 #include <cstring>
 #include "server.h"
+#include <vector>
 
 Server::Server(std::size_t portNumber)
 {
@@ -19,78 +20,82 @@ Server::Server(std::size_t portNumber)
 }
 Server::~Server()
 {
-    close( sockedFd );
+    close( socketFd );
+    close( activeConnection );
 }
 bool Server::init()
 {
-    // check if port number is assinged
 
-    portNumber = 4001;
+    bzero( &clientAddress, sizeof( clientAddress ) );
+    bzero( &serverAddress, sizeof( serverAddress ) );
 
     Server::serverAddress.sin_family = AF_INET;
     Server::serverAddress.sin_port = htons( portNumber );
     Server::serverAddress.sin_addr.s_addr = INADDR_ANY;
-
-
+	
     // creating sockect
-    Server::sockedFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+    Server::socketFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
 
-    if( sockedFd < 0 )
+    if( socketFd < 0 )
     {
         alert("Creating socket" , false );
 
         exit( 0 );
     }
-
-    alert("Creating socket" , true );
+    // alert("Creating socket" , true );
 
     // binding sockect
-    bool successfullBinding = bind( sockedFd, ( struct sockaddr * )&serverAddress, sizeof( serverAddress ) );
+    bool successfullBinding = bind( socketFd, ( struct sockaddr * )&serverAddress, sizeof( serverAddress ) );
 
-    if( successfullBinding < 0 )
+    if( successfullBinding == -1 )
     {
         alert( "binding", false );
         exit( 0 );
     }
 
-    alert( "binding", true );
+    // alert( "binding", true );
     communicate();
 
 }
 
 void Server::communicate()
 {
+    std::cout << "\t\t Chat Sever up and running" << std::endl;
     std::cout << "Waiting for client... " << std::endl;
 
+    listen(socketFd, numberOfSocket);
 
-    listen(sockedFd, numberOfSocket);
+    activeConnection = accept( socketFd, ( struct sockaddr *)&clientAddress, (unsigned *)sizeof(clientAddress));
 
-    int clientConnection = 0;
+    if( activeConnection < 0 )
+     {
+         alert( "Found a client!! ", false );
+     }
 
-    if( (clientConnection = accept( sockedFd, ( struct sockaddr *)&clientAddress, (unsigned *) sizeof(clientAddress)) < 0 ))
+    char *msg;
+    strcpy( msg, "You'v found a sever" );
+    send( socketFd, msg, strlen( msg ), 0 );
+
+    for(;;)
     {
-        alert( "Accepting connections ", false );
-    }
-
-    char * msg = nullptr;
-    do
-    {
-        std::cout << "Accepted connections from " + htonl(clientAddress.sin_addr.s_addr) << std::endl;
-        if( std::cin.good() )
+        if( std::cin.peek() > 0 )
         {
             std::cin >> msg;
 
-            send( clientConnection, msg, strlen( msg ), 0 );
+            write( socketFd, msg, strlen( msg ));
         }
-
-        if( recv( clientConnection, msg, strlen( msg ), 0) > 0 )
+        if( read( socketFd, msg, 1024 ) > 0 )
         {
-            std::cout << "Client >>    " + *msg << std::endl;
+            std::cout << "client >> " + *msg << std::endl;
+            if( strcpy( msg, "end") == 0 )
+            {
+                break;
+            }
         }
+    }
 
-    }while ( clientConnection > 0 );
-
-    close( clientConnection );
+    close( socketFd );
+    close( activeConnection );
 
 }
 
@@ -109,9 +114,9 @@ bool Server::alert( std::string message, bool type )
 }
 
 
-int main()
+int main( int argc, char* argv[] )
 {
-    Server server( 4001 );
+    Server server( atoi(argv[1]) );
     server.init();
 }
 
