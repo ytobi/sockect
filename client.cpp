@@ -4,6 +4,7 @@
 
 #include "client.h"
 #include <arpa/inet.h>
+#include <thread>
 
 
 Client::Client(std::size_t portNumber, char * severName)
@@ -33,18 +34,10 @@ void Client::init()
         exit( 0 );
     }
 
-    bcopy((char *)server->h_addr, (char *)&serverAddress.sin_addr.s_addr, server->h_length);
-
     this->serverAddress.sin_port = htons(this->portNumber);
     this->serverAddress.sin_family = AF_INET;
-   // serverAddress.sin_addr.s_addr = inet_addr( this->serverName );
+    serverAddress.sin_addr.s_addr = inet_addr( this->serverName );
 
-
-  //  if( inet_aton( serverName, &serverAddress.sin_addr ) == 0)
-  //  {
-  //      std::cout << "Invalid server address" << std::endl;
-  //      exit( 0 );
-  //  }
 
     if( ( clientFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 )
     {
@@ -66,28 +59,25 @@ void Client::init()
         close( clientFd );
         exit( 0 );
     }
-    std::cout << "Got connection from a server " << server->h_name << std::endl;
+    
     communicate( clientFd );
 
 }
 void Client::communicate( int clientFd )
 {
-    char * msg;
+    char msg[10];
+    bzero( msg, sizeof( msg ) );
 
-    std::cout << "waiting for connection" << std::endl;
     do
     {
-        recv( clientFd, &msg, strlen( msg ), 0);
-        std::cout << "server " + *msg << std::endl;
-
-        if( std::cin.good() )
+       // bzero( msg, sizeof( msg ) );
+        if( read( clientFd, msg, strlen( msg ) ) > 0 )
+            std::cout << "server>> "  << msg << std::endl;
+        if( std::cin.peek() > 0 )
         {
             std::cin >> msg;
-            send( clientFd, &msg, strlen( msg ), 0 );
+            write( clientFd, msg, strlen( msg ) );
         }
-       recv( clientFd, &msg, strlen( msg ), 0);
-
-        std::cout << "server >> " + *msg << std::endl;
 
     }while( clientFd > 0 );
 

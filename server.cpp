@@ -17,6 +17,7 @@
 Server::Server(std::size_t portNumber)
 {
     this->portNumber = portNumber;
+    this->numberOfSocket = 1;
 }
 Server::~Server()
 {
@@ -28,10 +29,15 @@ bool Server::init()
 
     bzero( &clientAddress, sizeof( clientAddress ) );
     bzero( &serverAddress, sizeof( serverAddress ) );
+    bzero( &serverAddress.sin_addr, sizeof( serverAddress ) );
+    bzero( &serverAddress.sin_addr.s_addr, sizeof( serverAddress ) );
 
     Server::serverAddress.sin_family = AF_INET;
     Server::serverAddress.sin_port = htons( portNumber );
-    Server::serverAddress.sin_addr.s_addr = INADDR_ANY;
+    Server::serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+
+   // Server::server = gethostbyname( "localhost" );
+   // bcopy((char *)server->h_addr, (char *)&serverAddress.sin_addr.s_addr, server->h_length);
 	
     // creating sockect
     Server::socketFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
@@ -45,7 +51,7 @@ bool Server::init()
     // alert("Creating socket" , true );
 
     // binding sockect
-    bool successfullBinding = bind( socketFd, ( struct sockaddr * )&serverAddress, sizeof( serverAddress ) );
+    int successfullBinding = bind( socketFd, ( struct sockaddr * )&serverAddress, sizeof( serverAddress ) );
 
     if( successfullBinding == -1 )
     {
@@ -65,34 +71,33 @@ void Server::communicate()
 
     listen(socketFd, numberOfSocket);
 
-    activeConnection = accept( socketFd, ( struct sockaddr *)&clientAddress, (unsigned *)sizeof(clientAddress));
+    int activeConnection = accept( socketFd, ( struct sockaddr *)NULL, NULL );
 
     if( activeConnection < 0 )
      {
          alert( "Found a client!! ", false );
      }
 
-    char *msg;
-    strcpy( msg, "You'v found a sever" );
-    send( socketFd, msg, strlen( msg ), 0 );
+    char msg[10];
+    bzero( msg, sizeof( msg ) );
 
-    for(;;)
+    strcpy( msg, "I am a sever" );
+    write( activeConnection, msg, strlen( msg ) );
+    std::cout << "Server >> " << msg << std::endl;
+
+    do
     {
+        // bzero( msg, sizeof( msg ) );
+        if ( read( activeConnection, msg, strlen( msg ) ) > 0 )
+        {
+            std::cout << "client >> " << msg << std::endl;
+        }
         if( std::cin.peek() > 0 )
         {
             std::cin >> msg;
-
-            write( socketFd, msg, strlen( msg ));
+            write( activeConnection, msg, strlen( msg ));
         }
-        if( read( socketFd, msg, 1024 ) > 0 )
-        {
-            std::cout << "client >> " + *msg << std::endl;
-            if( strcpy( msg, "end") == 0 )
-            {
-                break;
-            }
-        }
-    }
+    }while( activeConnection > 0 );
 
     close( socketFd );
     close( activeConnection );
