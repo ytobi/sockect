@@ -1,12 +1,3 @@
-//
-// Created by tobi on 3/21/18.
-//
-/*
- * create socket
- * bind socket
- * listen on socket
- * accept connection
- */
 
 #include <iostream>
 #include <zconf.h>
@@ -35,9 +26,6 @@ bool Server::init()
     Server::serverAddress.sin_family = AF_INET;
     Server::serverAddress.sin_port = htons( portNumber );
     Server::serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
-
-   // Server::server = gethostbyname( "localhost" );
-   // bcopy((char *)server->h_addr, (char *)&serverAddress.sin_addr.s_addr, server->h_length);
 	
     // creating sockect
     Server::socketFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );

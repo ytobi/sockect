@@ -1,6 +1,3 @@
-//
-// Created by tobi on 3/21/18.
-//
 
 #include "client.h"
 #include <arpa/inet.h>
@@ -23,7 +20,6 @@ void Client::init()
 	clientFd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
    
 	bzero( &serverAddress, sizeof( serverAddress ) );
-	bzero( &server, sizeof( server ) );
 	bzero( &serverAddress.sin_addr.s_addr, sizeof( serverAddress ) );
 	
     server = gethostbyname( this->serverName );
